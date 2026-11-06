@@ -1,7 +1,43 @@
 const LOGOIMG = '<img class="logo" src="img/logo.png" alt="Logo ESET UNQ">';
 const K = 'bib_esc_v2', ov = document.getElementById('ov');
-const SUPABASE_URL = 'https://xpizjwlnhzwynsuzyqqb.supabase.co';   // <-- tu URL real
-const SUPABASE_ANON_KEY = 'sb_publishable_-UGqBJZx3t97iaxM-LF9eQ_64Qv5s37';                  // <-- tu anon key real
+
+/* ---------- Supabase ---------- */
+const SUPABASE_URL = 'https://xpizjwlnhzwynsuzyqqb.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_-UGqBJZx3t97iaxM-LF9eQ_64Qv5s37';
+const SUPABASE_ESTADO_ID = 1;
+
+// Cliente de Supabase (usa el SDK cargado por CDN en index.html)
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function loadState() {
+  const { data, error } = await supabase
+    .from('biblioteca_estado')
+    .select('data')
+    .eq('id', SUPABASE_ESTADO_ID)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error cargando estado desde Supabase:', error);
+    return null;
+  }
+  return data ? data.data : null;
+}
+
+async function saveState() {
+  if (!S) return;
+  const { error } = await supabase
+    .from('biblioteca_estado')
+    .upsert(
+      { id: SUPABASE_ESTADO_ID, data: S, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    );
+
+  if (error) {
+    console.error('Error guardando estado en Supabase:', error);
+  }
+}
+
+/* ---------- Estado global ---------- */
 let S, me = null, V = 'login', A = {}, MSG = null;
 
 const COURSES = (() => {
@@ -45,9 +81,12 @@ const dueDate = (d, n) => {
   return x;
 };
 const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('esc' + s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+
+// Guardado: ahora persiste en Supabase en segundo plano
 const save = () => {
-  try { localStorage.setItem(K, JSON.stringify(S)); } catch (e) {}
+  saveState();
 };
+
 const log = (a, d) => {
   S.audit.unshift({ t: new Date().toLocaleString('es-AR'), u: me ? me.name : 'Sistema', a, d });
   S.audit = S.audit.slice(0, 300);
@@ -112,11 +151,14 @@ async function migrate() {
     S.users.push({ id: 'u' + uid(), name: 'Carolina Ríos', user: 'docente', h: await sha('docente123'), role: 'alu', email: 'carolina@mail.com', tipo: 'docente', curso: '' });
     ch = 1;
   }
-  if (ch) save();
+  if (ch) await saveState();
 }
 
 async function init() {
-  try { S = JSON.parse(localStorage.getItem(K)); } catch (e) {}
+  // 1. Intentar cargar desde Supabase
+  S = await loadState();
+
+  // 2. Si no hay fila en Supabase, crear el estado inicial y subirlo
   if (!S) {
     const h1 = await sha('biblio123'), h2 = await sha('alumno123');
     const t = today();
@@ -173,11 +215,13 @@ async function init() {
     const k2 = S.books[1].c[0];
     k2.st = 'p';
     S.loans.push({ id: uid(), u: 'u2', b: 'b1', code: k2.code, start: addD(t, -5), due: addD(t, 2), ret: null, n: 0 });
-    save();
+
+    await saveState(); // ← subir el estado inicial a Supabase
   }
+
   if (!S.books.some(b => b.t == 'Vinland Saga')) {
     S.books.push({ id: 'b' + uid(), t: 'Vinland Saga', a: 'Makoto Yukimura', g: 'Manga', y: 2005, s: 'Thorfinn, hijo de un legendario guerrero vikingo, crece en la Europa del siglo XI buscando venganza. Una historia de guerra, redención y de la búsqueda de una tierra donde vivir en paz.', f: 'Manga (tomo)', c: [{ code: 'V001-1', st: 'd' }, { code: 'V001-2', st: 'd' }] });
-    save();
+    await saveState();
   }
   await migrate();
   sweep();
