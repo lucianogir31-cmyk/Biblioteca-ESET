@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Biblioteca Eset</title>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <button id="chb" onclick="chToggle()" aria-label="Abrir ayuda con el asistente, disponible las 24 horas">💬 Ayuda 24 hs</button>
+
+  <section id="chp" aria-label="Asistente de ayuda">
+    <div class="chh">
+      <b>Asistente de la biblioteca · 24 hs</b>
+      <button class="s" onclick="chToggle()">Cerrar</button>
+    </div>
+    <div id="chm" aria-live="polite"></div>
+    <div class="chq" id="chq"></div>
+    <div class="chf">
+      <input id="chi" placeholder="Escribí tu duda acá" aria-label="Escribí tu duda" onkeydown="if(event.key=='Enter')chAsk()">
+      <button onclick="chAsk()">Enviar</button>
+    </div>
+  </section>
+
+  <div id="ov">
+    <div class="card">
+      <p id="ovt" style="font-size:1.3rem"></p>
+      <div class="row">
+        <button id="ovy">Sí, continuar</button>
+        <button class="s" onclick="ov.style.display='none'">No, volver</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="app.js"></script>
+</body>
+</html>
